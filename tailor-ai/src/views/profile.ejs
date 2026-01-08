@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= title %>
+    </title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        img {
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+        }
+
+        .btn-logout {
+            background: #fee;
+            color: #c00;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: 1px solid #c00;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="profile-info">
+            <% if (user.avatar) { %>
+                <img src="<%= user.avatar %>" alt="Avatar">
+                <% } %>
+                    <div>
+                        <h1>Hello, <%= user.full_name %>
+                        </h1>
+                        <p>
+                            <%= user.email %>
+                        </p>
+                    </div>
+        </div>
+        <a href="/auth/logout" class="btn-logout">Logout</a>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+        <h3>Update Profile</h3>
+        <form action="/user/profile/update" method="POST" style="max-width: 400px;">
+            <div style="margin-bottom: 1rem;">
+                <label for="birthdate" style="display: block; margin-bottom: 0.5rem;">Birthdate</label>
+                <input type="date" id="birthdate" name="birthdate"
+                    value="<%= user.birthdate ? new Date(user.birthdate).toISOString().split('T')[0] : '' %>"
+                    style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="gender" style="display: block; margin-bottom: 0.5rem;">Gender</label>
+                <select id="gender" name="gender" style="width: 100%; padding: 0.5rem;">
+                    <option value="">Select Gender</option>
+                    <option value="male" <%=user.gender==='male' ? 'selected' : '' %>>Male</option>
+                    <option value="female" <%=user.gender==='female' ? 'selected' : '' %>>Female</option>
+                    <option value="other" <%=user.gender==='other' ? 'selected' : '' %>>Other</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label for="country" style="display: block; margin-bottom: 0.5rem;">Country</label>
+                <input type="text" id="country" name="country" placeholder="Enter Country"
+                    value="<%= user.country || '' %>" style="width: 100%; padding: 0.5rem;">
+            </div>
+
+            <button type="submit"
+                style="background: #007bff; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">Save
+                Changes</button>
+        </form>
+    </div>
+
+    <h2>User Data</h2>
+    <pre><%= JSON.stringify(user, null, 2) %></pre>
+</body>
+
+</html>

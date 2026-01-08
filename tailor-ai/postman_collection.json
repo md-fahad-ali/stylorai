@@ -1,0 +1,863 @@
+{
+    "info": {
+        "_postman_id": "tailorai-api",
+        "name": "TailorAI API",
+        "description": "API Collection for TailorAI Fastify Backend - API Endpoints Only",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"fullName\": \"Test User\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Register a new user with email and password"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login with email and password. Returns JWT access token and refresh token.",
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "pm.test(\"Status code is 200\", function () {",
+                                        "    pm.response.to.have.status(200);",
+                                        "});",
+                                        "if (jsonData.token) {",
+                                        "    pm.environment.set(\"jwtToken\", jsonData.token);",
+                                        "    console.log(\"Token extracted and saved to environment variable 'jwtToken'\");",
+                                        "}",
+                                        "if (jsonData.refreshToken) {",
+                                        "    pm.environment.set(\"refreshToken\", jsonData.refreshToken);",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ]
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Google Mobile Login (Flutter/Native)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"idToken\": \"PASTE_YOUR_GOOGLE_ID_TOKEN_HERE\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/google/mobile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "google",
+                                "mobile"
+                            ]
+                        },
+                        "description": "Google Sign-In for Flutter/Mobile Apps. Send the idToken from GoogleSignIn to receive JWT access token and refresh token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/refresh",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "description": "Get new access token using refresh token"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Profile (JWT)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Get authenticated user profile - Returns JSON. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Request Password Reset",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password-reset/request",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password-reset",
+                                "request"
+                            ]
+                        },
+                        "description": "Request a password reset email. System will send a reset link to the email if the account exists. Returns success regardless to prevent email enumeration."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Reset OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",\n    \"otp\": \"123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password-reset/verify-otp",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password-reset",
+                                "verify-otp"
+                            ]
+                        },
+                        "description": "Verify the 6-digit OTP sent to email. Returns valid: true if correct."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"test@example.com\",\n    \"otp\": \"123456\",\n    \"newPassword\": \"newPassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/password-reset/reset",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "password-reset",
+                                "reset"
+                            ]
+                        },
+                        "description": "Reset password using the OTP code. Password must be at least 6 characters. OTP is invalidated after valid use."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "User Profile",
+            "item": [
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get user profile - Returns JSON. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"birthdate\": \"1990-01-15\",\n    \"gender\": \"Male\",\n    \"country\": \"Bangladesh\",\n    \"avatar\": \"https://example.com/avatar.jpg\",\n    \"fashionPreferences\": {\n        \"season\": [\"Spring\", \"Summer\"],\n        \"style\": [\"Smart Casual\", \"Minimalist\"],\n        \"preferencesColor\": [\"Neutrals\", \"Warm Tones\"],\n        \"bodyType\": \"Athletic\",\n        \"skinTone\": \"Light-Medium\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/profile/update",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "profile",
+                                "update"
+                            ]
+                        },
+                        "description": "Update user profile (birthdate, gender, country, avatar) and fashion preferences. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Fashion Preferences",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"season\": [\"Spring\"],\n    \"style\": [\"Smart Casual\"],\n    \"preferencesColor\": [\"Neutrals\"],\n    \"bodyType\": \"Athletic\",\n    \"skinTone\": \"Light-Medium\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/user/fashion-preferences/update",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "fashion-preferences",
+                                "update"
+                            ]
+                        },
+                        "description": "Update only fashion preferences without changing other profile fields. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Upload Avatar (Image File)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/upload/avatar",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "upload",
+                                "avatar"
+                            ]
+                        },
+                        "description": "Upload avatar image file. Accepts JPEG, PNG, GIF, WebP (Max 5MB). Automatically updates user's avatar in database."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Fashion",
+            "item": [
+                {
+                    "name": "Submit Fashion DNA",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"season\": [\"Spring\"],\n    \"style\": [\"Smart Casual\"],\n    \"preferencesColor\": [\"Neutrals\"],\n    \"bodyType\": \"Athletic\",\n    \"skinTone\": \"Light-Medium\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/dna",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "dna"
+                            ]
+                        },
+                        "description": "Submit fashion preferences and generate outfit image. Returns { imageUrl, title, description, products: [{ title, category }] }. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Outfit from Saved Preferences",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"option\": \"Casual\",\n    \"temperature\": 0.8\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/generate",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "generate"
+                            ]
+                        },
+                        "description": "Generate personalized outfit image from saved preferences. Returns { imageUrl, title, description, products: [{ title, category }] }. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generate Flat Lay from Photo",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/generate-flat-lay",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "generate-flat-lay"
+                            ]
+                        },
+                        "description": "Upload a photo of a dress/garment. AI generates flat lay replica with title, description, and list of categorized products (Top, Bottoms, Shoes, Accessories). Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Wardrobe",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/wardrobe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "wardrobe"
+                            ]
+                        },
+                        "description": "Get all generated wardrobe items for the authenticated user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Products (Pagination)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/search?queries=Minimalist Watch,White T-Shirt,Chino Shorts&limit=5&offset=0",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "search"
+                            ],
+                            "query": [
+                                {
+                                    "key": "queries",
+                                    "value": "Minimalist Watch,White T-Shirt,Chino Shorts",
+                                    "description": "Comma-separated list of product queries"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "5",
+                                    "description": "Number of items to fetch PER product"
+                                },
+                                {
+                                    "key": "offset",
+                                    "value": "0",
+                                    "description": "Starting index"
+                                }
+                            ]
+                        },
+                        "description": "Search for products. Supports 'queries' (comma-separated with Mixed results) OR single 'query'. Returns mixed list of products."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add to Favorites",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"product_name\": \"Black Party Dress\",\n    \"product_url\": \"https://example.com/product/123\",\n    \"image_url\": \"https://example.com/image.jpg\",\n    \"price\": \"$50.00\",\n    \"search_query\": \"women black dress party\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/favorite",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "favorite"
+                            ]
+                        },
+                        "description": "Add a product to favorites with context (search_query). IMPORTANT: 'search_query' should be taken from the 'products' list returned by the 'Generate Outfit' endpoint to enable smart recall. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Favorites",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/favorites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "favorites"
+                            ]
+                        },
+                        "description": "Get all favorite items. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove from Favorites",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/favorite/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "favorite",
+                                "1"
+                            ]
+                        },
+                        "description": "Remove an item from favorites by ID. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add to Favorite Outfits (Snapshot)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"image_url\": \"{{imageUrl}}\",\n    \"title\": \"Generated Outfit Title\",\n    \"description\": \"A detailed description...\",\n    \"products\": [\n        {\n            \"title\": \"White T-Shirt\",\n            \"category\": \"Top\"\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/outfit/favorite",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "outfit",
+                                "favorite"
+                            ]
+                        },
+                        "description": "Save an entire outfit generation result to favorites. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Favorite Outfits",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/outfit/favorites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "outfit",
+                                "favorites"
+                            ]
+                        },
+                        "description": "Get all favorite outfits. Returns list of outfits including title, description, image_url, and products. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove Favorite Outfit",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/outfit/favorite/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "outfit",
+                                "favorite",
+                                "1"
+                            ]
+                        },
+                        "description": "Remove an outfit from favorites by ID. Requires JWT token."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://api.stylorai.com",
+            "type": "string"
+        },
+        {
+            "key": "jwtToken",
+            "value": "",
+            "type": "string",
+            "description": "Paste the JWT access token here"
+        },
+        {
+            "key": "refreshToken",
+            "value": "",
+            "type": "string",
+            "description": "Paste the refresh token here"
+        }
+    ]
+}
