@@ -9,6 +9,9 @@ async function userRoutes(fastify: FastifyInstance, options: any) {
     // Update Fashion Preferences Only
     fastify.post('/fashion-preferences/update', authController.updateFashionPreferences);
 
+    // Delete Account
+    fastify.delete('/delete', authController.deleteAccount);
+
     // JSON Profile (Mobile) - Keeping hard protection for now unless specified otherwise
     // @ts-ignore
     fastify.get('/me', { onRequest: [fastify.authenticate] }, authController.me);

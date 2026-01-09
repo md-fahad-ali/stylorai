@@ -579,7 +579,38 @@ const authController = {
             req.log.error(`Error in resetPassword: ${error}`);
             return reply.status(500).send({ error: 'Failed to reset password' });
         }
+    },
+
+    // Delete User Account
+    deleteAccount: async (req: FastifyRequest, reply: FastifyReply) => {
+        try {
+            await req.jwtVerify();
+            const user = (req as any).user || (req as any).jwtUser;
+
+            if (!user) {
+                return reply.status(401).send({ error: 'Unauthorized' });
+            }
+
+            console.log(`⚠️ Requesting account deletion for user: ${user.id} (${user.email})`);
+
+            // Perform Deletion
+            const deleted = await UserModel.delete(user.id);
+
+            if (deleted) {
+                return reply.send({
+                    success: true,
+                    message: 'Account deleted successfully. We are sorry to see you go.'
+                });
+            } else {
+                return reply.status(404).send({ error: 'User not found or already deleted' });
+            }
+
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            return reply.status(500).send({ error: 'Failed to delete account' });
+        }
     }
 };
+
 
 export default authController;

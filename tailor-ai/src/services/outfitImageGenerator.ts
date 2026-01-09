@@ -44,14 +44,18 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
 
         // Map temperature to season
         let seasonByTemperature: string;
-        if (temperature <= 0.25) {
-            seasonByTemperature = 'Winter';
-        } else if (temperature <= 0.50) {
-            seasonByTemperature = 'Autumn';
-        } else if (temperature <= 0.75) {
-            seasonByTemperature = 'Spring';
+
+        // Handle "Real" Weather Temperatures (Celsius) - Now Universal
+        // Logic: < 12 = Winter, 12-22 = Autumn, 23-27 = Spring, > 28 = Summer
+
+        if (temperature < 12) {
+            seasonByTemperature = 'Winter'; // Cold
+        } else if (temperature >= 12 && temperature < 23) {
+            seasonByTemperature = 'Autumn'; // Cool/Mild
+        } else if (temperature >= 23 && temperature < 28) {
+            seasonByTemperature = 'Spring'; // Warm
         } else {
-            seasonByTemperature = 'Summer';
+            seasonByTemperature = 'Summer'; // Hot
         }
 
         const season = seasonByTemperature;
@@ -138,9 +142,9 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
         const topGarmentSpecs: Record<string, { type: string; desc: string }> = {
             'Spring': { type: 'LIGHT JACKET', desc: 'light spring jacket or cardigan' },
             'Summer': { type: 'T-SHIRT', desc: 't-shirt or tank top' },
-            'Autumn': { type: 'SWEATER', desc: 'sweater or hoodie' },
-            'Fall': { type: 'SWEATER', desc: 'sweater or hoodie' },
-            'Winter': { type: 'JACKET', desc: 'heavy jacket or coat' }
+            'Autumn': { type: 'SWEATER', desc: 'lightweight sweater, long-sleeve shirt, or hoodie' }, // Lighter Autumn
+            'Fall': { type: 'SWEATER', desc: 'lightweight sweater, long-sleeve shirt, or hoodie' },
+            'Winter': { type: 'JACKET', desc: 'heavy jacket, puffer, or coat' }
         };
 
         const bottomGarmentSpecs: Record<string, { type: string; desc: string }[]> = {
@@ -149,8 +153,8 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
                 { type: 'SHORTS', desc: 'shorts' },
                 { type: 'PANTS', desc: 'lightweight chinos or linen pants' }
             ],
-            'Autumn': [{ type: 'JEANS', desc: 'jeans or pants' }],
-            'Fall': [{ type: 'JEANS', desc: 'jeans or pants' }],
+            'Autumn': [{ type: 'JEANS', desc: 'jeans or chinos' }], // Removed "pants", specific to jeans/chinos
+            'Fall': [{ type: 'JEANS', desc: 'jeans or chinos' }],
             'Winter': [{ type: 'PANTS', desc: 'thick jeans or wool pants' }]
         };
 
@@ -161,8 +165,17 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
         const bottomSpec = bottomOptions[Math.floor(Math.random() * bottomOptions.length)];
 
         // Build accessory based on season
-        const primaryAccessory = (season === 'Summer' || season === 'Spring') ? 'sleek sunglasses' : 'stylish hat or beanie';
-        const secondaryAccessory = (gender === 'Female') ? 'elegant handbag or shoulder bag' : 'minimalist watch';
+        // REFINED LOGIC: Autumn gets sunglasses/hats but NOT beanies (Winter only)
+        let primaryAccessory = 'stylish accessory';
+        if (season === 'Winter') {
+            primaryAccessory = 'scaf or beanie';
+        } else if (season === 'Autumn' || season === 'Fall') {
+            primaryAccessory = 'baseball cap or stylish watch'; // Lighter headwear
+        } else {
+            primaryAccessory = 'sleek sunglasses';
+        }
+
+        const secondaryAccessory = (gender === 'Female') ? 'elegant handbag or shoulder bag' : 'minimalist watch or bracelet';
 
         // Age-appropriate styling hints
         const ageStyleHint = ageGroup === 'teen' ? 'youthful trendy'
@@ -180,6 +193,17 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
         // ---------------------------------------------------------
         // 1. CONSTRUCT A DETAILED, DETERMINISTIC PROMPT
         // ---------------------------------------------------------
+
+        // REFINED SHOE LOGIC: Separate Autumn from Winter
+        let shoeChoice = 'clean sneakers';
+        if (season === 'Winter') {
+            shoeChoice = 'warm boots';
+        } else if (season === 'Autumn' || season === 'Fall') {
+            shoeChoice = 'sneakers or desert boots'; // Lighter boots or sneakers
+        } else {
+            shoeChoice = 'clean sneakers or loafers';
+        }
+
         // Added Randomness: Fabric, Pattern, Fit, Noise
         const dynamicPrompt = `
 Professional fashion flat lay outfit image for a mobile shopping app.
@@ -188,7 +212,7 @@ A complete ${season.toLowerCase()} ${style.toLowerCase()} outfit arranged neatly
 OUTFIT DETAILS:
 - ONE ${selectedPattern} ${selectedFabric} ${topSpec.desc} in ${colorDesc}, ${selectedFit}, ${fitDescription}
 - ONE ${bottomSpec.desc} complementing the top
-- ONE pair of ${season === 'Winter' || season === 'Autumn' ? 'boots or sneakers' : 'clean sneakers or loafers'}
+- ONE pair of ${shoeChoice}
 - ${primaryAccessory}
 - ${secondaryAccessory}
 

@@ -430,6 +430,35 @@
                         "description": "Upload avatar image file. Accepts JPEG, PNG, GIF, WebP (Max 5MB). Automatically updates user's avatar in database."
                     },
                     "response": []
+                },
+                {
+                    "name": "Delete User Account",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/user/delete",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "user",
+                                "delete"
+                            ]
+                        },
+                        "description": "Permanently delete the authenticated user's account."
+                    },
+                    "response": []
                 }
             ]
         },

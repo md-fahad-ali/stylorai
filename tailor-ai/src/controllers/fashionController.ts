@@ -21,7 +21,7 @@ const GenerateImageSchema = z.object({
         'Vintage',
         'Sporty'
     ]).optional(),
-    temperature: z.number().min(0).max(1).optional()
+    temperature: z.number().optional()
 });
 
 interface FashionDNARequest {
