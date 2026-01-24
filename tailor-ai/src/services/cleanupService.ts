@@ -27,7 +27,7 @@ async function isImageSavedInDB(filename: string): Promise<boolean> {
 
         // 2. Check Wardrobe
         const wardrobe = await db.query(
-            'SELECT 1 FROM wardrobe WHERE image_path ILIKE $1 OR image_url ILIKE $1 LIMIT 1',
+            'SELECT 1 FROM wardrobe WHERE image_path ILIKE $1 OR uploaded_image_path ILIKE $1 LIMIT 1',
             [searchTerm]
         );
         if (wardrobe.rowCount && wardrobe.rowCount > 0) return true;

@@ -28,6 +28,7 @@ interface FashionDNARequest {
     season?: string[];
     style?: string[];
     preferencesColor?: string[];
+    color?: string[]; // New field
     bodyType?: string;
     skinTone?: string;
     gender?: string;
@@ -73,6 +74,7 @@ const fashionController = {
             season: fashionData.season || [],
             style: fashionData.style || [],
             preferences_color: fashionData.preferencesColor || [], // Note: DB column is preferences_color
+            color: fashionData.color || [], // New field
             body_type: fashionData.bodyType,
             skin_tone: fashionData.skinTone
         };
@@ -81,30 +83,21 @@ const fashionController = {
             // Save preferences to database first
             console.log('💾 Saving fashion preferences for user:', user.id);
             await FashionPreferencesModel.upsert(user.id, preferencesToSave);
-            console.log('✅ Preferences saved successfully');
+            console.log('✅ Preferences saved successfully (Image generation skipped)');
 
-            console.log('🎨 Generating outfit image for user preferences...');
-            const { imageUrl, title, description, products } = await generateOutfitImage(fashionData);
-
-            // Prepare response
+            // Prepare response - DATA ONLY, NO IMAGE
             const response = {
                 success: true,
-                message: 'Fashion DNA preferences received and outfit image generated successfully',
+                message: 'Fashion DNA preferences saved successfully',
                 userId: user.id,
                 userEmail: user.email,
                 receivedData: {
                     season: fashionData.season || [],
                     style: fashionData.style || [],
                     preferencesColor: fashionData.preferencesColor || [],
+                    color: fashionData.color || [],
                     bodyType: fashionData.bodyType || '',
                     skinTone: fashionData.skinTone || ''
-                },
-                generatedImage: {
-                    url: imageUrl,
-                    title: title,
-                    description: description,
-                    products: products || [],
-                    expiresIn: '2 hours'
                 },
                 timestamp: new Date().toISOString()
             };
@@ -115,27 +108,11 @@ const fashionController = {
             return reply.status(200).send(response);
 
         } catch (error) {
-            console.error('Error generating outfit image:', error);
-
-            // Still return success with fashion data even if image generation fails
-            const response = {
-                success: true,
-                message: 'Fashion DNA preferences received (image generation pending)',
-                userId: user.id,
-                userEmail: user.email,
-                receivedData: {
-                    season: fashionData.season || [],
-                    style: fashionData.style || [],
-                    preferencesColor: fashionData.preferencesColor || [],
-                    bodyType: fashionData.bodyType || '',
-                    skinTone: fashionData.skinTone || ''
-                },
-                generatedImage: null,
-                error: 'Image generation failed, please try again',
-                timestamp: new Date().toISOString()
-            };
-
-            return reply.status(200).send(response);
+            console.error('Error saving fashion preferences:', error);
+            return reply.status(500).send({
+                error: 'Internal Server Error',
+                message: 'Failed to save fashion preferences'
+            });
         }
     },
 
@@ -169,11 +146,35 @@ const fashionController = {
             console.log('📥 Fetching saved preferences for user:', user.id);
             const savedPreferences = await FashionPreferencesModel.findByUserId(user.id);
 
+            // Fallback for new users without saved preferences
+            const defaultPreferences = {
+                season: ['Spring'],
+                style: ['Casual'],
+                preferences_color: ['Neutrals'],
+                body_type: 'Average',
+                skin_tone: 'Medium',
+                user_id: user.id
+            };
+
+            const finalPreferences = savedPreferences || defaultPreferences;
+
+            // Re-assign to use finalPreferences downstream (we need to cast or rename usage)
+            // But since savedPreferences is const, we'll just redefine the var for usage below or rely on a new var.
+            // Actually, let's keep the variable name consistent to minimize code change, but we can't reassign const.
+            // So we will use a new variable `prefsToUse` or just change the type of logic above.
+
+            // CLEANER APPROACH:
+            const prefsToUse = savedPreferences || {
+                season: ['Spring'],
+                style: ['Casual'],
+                preferences_color: ['Neutrals'],
+                body_type: 'Average',
+                skin_tone: 'Medium',
+                user_id: user.id
+            };
+
             if (!savedPreferences) {
-                return reply.status(404).send({
-                    error: 'No saved preferences found',
-                    message: 'Please save your fashion preferences first using POST /user/fashion-preferences/update'
-                });
+                console.log('⚠️ No saved prefs found, using DEFAULTS for user:', user.id);
             }
 
 
@@ -181,7 +182,7 @@ const fashionController = {
                 gender: userData.gender,
                 birthdate: userData.birthdate
             });
-            console.log('✅ Found saved preferences:', JSON.stringify(savedPreferences, null, 2));
+            console.log('✅ Found saved preferences:', JSON.stringify(prefsToUse, null, 2));
 
             // Validate request body with Zod
             try {
@@ -197,19 +198,50 @@ const fashionController = {
 
                 // Prepare fashion data for image generation (including profile data)
                 const fashionData: FashionDNARequest = {
-                    season: savedPreferences.season,
+                    season: prefsToUse.season,
                     // If option is provided, use it; otherwise use saved styles
-                    style: selectedOption ? [selectedOption] : savedPreferences.style,
-                    preferencesColor: savedPreferences.preferences_color,
-                    bodyType: savedPreferences.body_type || undefined,
-                    skinTone: savedPreferences.skin_tone || undefined,
+                    style: selectedOption ? [selectedOption] : prefsToUse.style,
+                    preferencesColor: prefsToUse.preferences_color,
+                    bodyType: prefsToUse.body_type || undefined,
+                    skinTone: prefsToUse.skin_tone || undefined,
                     gender: userData.gender || undefined,
                     birthdate: userData.birthdate || undefined
                 };
 
+                // Fetch user's wardrobe items
+                console.log('👗 Fetching user wardrobe for outfit integration...');
+                const wardrobeItems = await WardrobeModel.findByUserId(user.id);
+
+                let selectedWardrobeItems: any[] = [];
+                if (wardrobeItems && wardrobeItems.length > 0) {
+                    // Balanced Selection Logic
+                    // Goal: Pick distinct categories (Top, Bottom, Shoes, Accessory) rather than random mixing
+
+                    const categories = {
+                        top: wardrobeItems.filter(i => /shirt|t-shirt|top|jacket|coat|sweater|hoodie/i.test(i.category || i.title || '')),
+                        bottom: wardrobeItems.filter(i => /pant|jeans|trousers|short|skirt/i.test(i.category || i.title || '')),
+                        shoes: wardrobeItems.filter(i => /shoe|sneaker|boot|sandal|loafer/i.test(i.category || i.title || '')),
+                        accessories: wardrobeItems.filter(i => !/shirt|t-shirt|top|jacket|coat|sweater|hoodie|pant|jeans|trousers|short|skirt|shoe|sneaker|boot|sandal|loafer/i.test(i.category || i.title || ''))
+                    };
+
+                    const pickRandom = (arr: any[]) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+
+                    const selectedTop = pickRandom(categories.top);
+                    const selectedBottom = pickRandom(categories.bottom);
+                    const selectedShoe = pickRandom(categories.shoes);
+                    const selectedAccessory = pickRandom(categories.accessories);
+
+                    if (selectedTop) selectedWardrobeItems.push(selectedTop);
+                    if (selectedBottom) selectedWardrobeItems.push(selectedBottom);
+                    if (selectedShoe) selectedWardrobeItems.push(selectedShoe);
+                    if (selectedAccessory) selectedWardrobeItems.push(selectedAccessory);
+
+                    console.log(`✅ Selected Balanced Wardrobe Items: ${selectedWardrobeItems.map(i => i.category).join(', ')}`);
+                }
+
                 // Generate outfit image
                 console.log('🎨 Generating outfit image from saved preferences and profile...');
-                const { imageUrl, title, description, products } = await generateOutfitImage(fashionData, temperature);
+                const { imageUrl, title, description, products } = await generateOutfitImage(fashionData, temperature, selectedWardrobeItems);
 
                 // Prepare response
                 const response = {
@@ -218,11 +250,11 @@ const fashionController = {
                     userId: user.id,
                     userEmail: user.email,
                     usedPreferences: {
-                        season: savedPreferences.season,
-                        style: savedPreferences.style,
-                        preferencesColor: savedPreferences.preferences_color,
-                        bodyType: savedPreferences.body_type,
-                        skinTone: savedPreferences.skin_tone
+                        season: prefsToUse.season,
+                        style: prefsToUse.style,
+                        preferencesColor: prefsToUse.preferences_color,
+                        bodyType: prefsToUse.body_type,
+                        skinTone: prefsToUse.skin_tone
                     },
                     generatedImage: {
                         url: imageUrl,
@@ -277,6 +309,15 @@ const fashionController = {
             return reply.status(401).send({ error: 'Unauthorized - User not found' });
         }
 
+        // Validate that user actually exists in DB (to avoid foreign key errors later)
+        const userExists = await UserModel.findById(user.id);
+        if (!userExists) {
+            return reply.status(401).send({
+                error: 'Unauthorized - Invalid User',
+                message: 'Your session refers to a user that no longer exists. Please login again.'
+            });
+        }
+
         try {
             // 1. Validate Content-Type
             if (!req.isMultipart()) {
@@ -296,19 +337,46 @@ const fashionController = {
             // 3. Convert to buffer
             const buffer = await data.toBuffer();
 
+            // [NEW] Save Original Uploaded Image
+            const fs = require('fs');
+            const path = require('path');
+            const originalFileName = `original_${Date.now()}_${data.filename.replace(/[^a-zA-Z0-9.]/g, '')}`;
+            const uploadDir = path.join(process.cwd(), 'uploads', 'originals');
+
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            const originalFilePath = path.join(uploadDir, originalFileName);
+            fs.writeFileSync(originalFilePath, buffer);
+
+            // Construct public URL for uploaded image
+            const localUploadedPath = `/uploads/originals/${originalFileName}`;
+            const backendUrl = process.env.HOST || 'http://localhost:8081';
+            const uploadedImageUrl = `${backendUrl}${localUploadedPath}`;
+
+            console.log(`✅ Saved uploaded image to: ${originalFilePath}`);
+
             // 4. Call Service
             // Dynamic import to avoid circular dep issues if any, or just import at top if clean
             // Imported normally at top
             const { imageGenerationService } = require('../services/imageGenerationService');
 
             console.log('🖼️ Processing uploaded image for Flat Lay generation...');
-            const result = await imageGenerationService.generateFlatLayReplica(buffer);
+
+            // Pass user gender to service to override vision detection if needed
+            const userGender = userExists.gender || 'Unisex';
+            const result = await imageGenerationService.generateFlatLayReplica(buffer, userGender);
 
             // 5. Save to Wardrobe
             const savedItem = await WardrobeModel.create({
                 user_id: user.id,
                 image_path: result.localPath,
-                title: result.title
+                uploaded_image_path: uploadedImageUrl, // Save FULL URL as requested
+                title: result.title,
+                category: result.category || result.details.type,
+                description: `Color: ${result.details.color}, Pattern: ${result.details.pattern}, Material: ${result.details.material}, Style: ${result.details.style}`,
+                details: result.details
             });
 
             console.log(`✅ Saved new wardrobe item: ${savedItem.id} for user ${user.id}`);
@@ -319,6 +387,8 @@ const fashionController = {
                 data: savedItem,
                 imageUrl: result.imageUrl,
                 localPath: result.localPath,
+                uploadedImageUrl: uploadedImageUrl,
+                uploadedLocalPath: localUploadedPath,
                 title: result.title,
                 details: result.details,
                 suggestedProducts: result.suggestedProducts,
@@ -351,11 +421,39 @@ const fashionController = {
 
         try {
             const items = await WardrobeModel.findByUserId(user.id);
-            console.log(items);
+
+            // Enrich items with full URLs
+            const enrichedItems = items.map((item: any) => {
+                const backendUrl = process.env.HOST || 'http://localhost:8081';
+
+                // DEBUG LOG
+                console.log(`DEBUG: processing item alias=${item.id}, host=${backendUrl}, rawImg=${item.image_path}`);
+
+                // 1. Resolve image_path -> full URL
+                let finalImagePath = item.image_path;
+                if (finalImagePath && !finalImagePath.startsWith('http')) {
+                    finalImagePath = `${backendUrl}${finalImagePath}`;
+                }
+
+                // 2. Resolve uploaded_image_path -> full URL
+                let finalUploadedUrl = item.uploaded_image_path;
+                if (finalUploadedUrl && !finalUploadedUrl.startsWith('http')) {
+                    finalUploadedUrl = `${backendUrl}${finalUploadedUrl}`;
+                }
+
+                return {
+                    ...item,
+                    image_path: finalImagePath, // Overwrite with absolute URL
+                    imageUrl: finalImagePath,   // Add alias
+                    uploadedImageUrl: finalUploadedUrl,
+                    uploaded_image_path: finalUploadedUrl // Overwrite with absolute URL
+                };
+            });
+
             return reply.status(200).send({
                 success: true,
-                count: items.length,
-                items: items
+                count: enrichedItems.length,
+                items: enrichedItems
             });
         } catch (error: any) {
             console.error('❌ Error fetching wardrobe:', error);
@@ -367,9 +465,130 @@ const fashionController = {
         }
     },
 
+    // GET: Fetch individual wardrobe item by ID
+    getWardrobeItemById: async (req: FastifyRequest, reply: FastifyReply) => {
+        try {
+            await req.jwtVerify();
+        } catch (err) {
+            return reply.status(401).send({ error: 'Unauthorized - Please login first' });
+        }
+
+        const user = (req as any).user || (req as any).jwtUser;
+        const { id } = req.params as { id: string };
+
+        try {
+            const item = await WardrobeModel.findById(id);
+
+            if (!item) {
+                return reply.status(404).send({ error: 'Wardrobe item not found' });
+            }
+
+            // Security check: Ensure item belongs to user
+            if (Number(item.user_id) !== Number(user.id)) {
+                return reply.status(403).send({ error: 'Unauthorized access to this item' });
+            }
+
+            // Enrich item with full URLs
+            const enrichedItem: any = { ...item };
+            const backendUrl = process.env.HOST || 'http://localhost:8081';
+
+            // 1. Resolve image_path -> full URL
+            if (enrichedItem.image_path && !enrichedItem.image_path.startsWith('http')) {
+                enrichedItem.image_path = `${backendUrl}${enrichedItem.image_path}`;
+            }
+            enrichedItem.imageUrl = enrichedItem.image_path;
+
+            // 2. Resolve uploaded_image_path -> full URL
+            if (enrichedItem.uploaded_image_path && !enrichedItem.uploaded_image_path.startsWith('http')) {
+                enrichedItem.uploaded_image_path = `${backendUrl}${enrichedItem.uploaded_image_path}`;
+            }
+            enrichedItem.uploadedImageUrl = enrichedItem.uploaded_image_path;
+
+            return reply.status(200).send({
+                success: true,
+                item: enrichedItem
+            });
+
+        } catch (error: any) {
+            console.error('❌ Error fetching wardrobe item:', error);
+            return reply.status(500).send({
+                success: false,
+                error: 'Failed to fetch wardrobe item',
+                details: error.message
+            });
+        }
+    },
+
+    // DELETE: Delete wardrobe item
+    deleteWardrobeItem: async (req: FastifyRequest, reply: FastifyReply) => {
+        try {
+            await req.jwtVerify();
+        } catch (err) {
+            return reply.status(401).send({ error: 'Unauthorized - Please login first' });
+        }
+
+        const user = (req as any).user || (req as any).jwtUser;
+        if (!user) {
+            return reply.status(401).send({ error: 'Unauthorized - User not found' });
+        }
+
+        const { id } = req.params as { id: string };
+
+        try {
+            // Verify item exists and belongs to user
+            const item = await WardrobeModel.findById(id);
+
+            if (!item) {
+                return reply.status(404).send({ error: 'Wardrobe item not found' });
+            }
+
+            if (Number(item.user_id) !== Number(user.id)) {
+                return reply.status(403).send({ error: 'Unauthorized access to this item' });
+            }
+
+            // Delete the item
+            const deleted = await WardrobeModel.delete(id, user.id);
+
+            if (deleted) {
+                return reply.status(200).send({
+                    success: true,
+                    message: 'Wardrobe item deleted successfully'
+                });
+            } else {
+                return reply.status(500).send({ error: 'Failed to delete item' });
+            }
+
+        } catch (error: any) {
+            console.error('❌ Error deleting wardrobe item:', error);
+            return reply.status(500).send({
+                success: false,
+                error: 'Failed to delete wardrobe item',
+                details: error.message
+            });
+        }
+    },
+
     // GET: Search products with pagination (Supports Single or Multi-Product Search)
     searchProducts: async (req: FastifyRequest, reply: FastifyReply) => {
         try {
+            // Extract user gender from JWT (optional - if not authenticated, show all)
+            let userGender: string | undefined;
+            try {
+                await req.jwtVerify();
+                const user = (req as any).user || (req as any).jwtUser;
+                if (user && user.id) {
+                    // Fetch user's gender from database
+                    const userResult = await db.query('SELECT gender FROM users WHERE id = $1', [user.id]);
+                    if (userResult.rows.length > 0) {
+                        userGender = userResult.rows[0].gender;
+                        console.log(`🔐 Authenticated user (ID: ${user.id}) - Gender: ${userGender}`);
+                    }
+                }
+            } catch (err) {
+                // User not authenticated - proceed without gender filter
+                console.log('🔓 Unauthenticated search - showing all genders');
+            }
+
             const queryParams = req.query as Record<string, string>;
             const { limit, offset, queries, query } = queryParams;
 
@@ -381,8 +600,30 @@ const fashionController = {
             let productQueries: string[] = [];
 
             if (queries) {
-                // Easy mode: ?queries=watch,shirt,shoes
-                productQueries = queries.split(',').map(q => q.trim()).filter(q => q.length > 0);
+                // SMART PARSE: Handle mixed bag of products and attributes
+                // Example: "Sneakers, Color: Blue, Shirt, Pattern: Solid"
+                // Should become: ["Sneakers, Color: Blue", "Shirt, Pattern: Solid"]
+
+                const rawParts = queries.split(',');
+                productQueries = [];
+
+                const attributeRegex = /^\s*(Color|Pattern|Material|Style|Size):/i;
+
+                for (let part of rawParts) {
+                    const cleanPart = part.trim();
+                    if (cleanPart.length === 0) continue;
+
+                    // If this part looks like an attribute (starts with Color:, Pattern: etc)
+                    // AND we have a previous product to attach it to, append it.
+                    if (attributeRegex.test(cleanPart) && productQueries.length > 0) {
+                        productQueries[productQueries.length - 1] += `, ${cleanPart}`;
+                    } else {
+                        // Otherwise, it's a new product (e.g., "Sneakers" or "Shirt")
+                        productQueries.push(cleanPart);
+                    }
+                }
+
+                console.log(`ℹ️ [Controller] Smart Parsed Queries:`, productQueries);
             } else {
                 // Legacy mode: ?product1=watch&product2=shirt
                 Object.keys(queryParams).forEach(key => {
@@ -400,7 +641,7 @@ const fashionController = {
                 const { searchMultipleProducts } = require('../services/imageGenerationService');
 
                 // Get categorized results
-                const results = await searchMultipleProducts(productQueries, limitNum, offsetNum);
+                const results = await searchMultipleProducts(productQueries, limitNum, offsetNum, userGender);
 
                 // FLATTEN & INTERLEAVE RESULTS
                 // Instead of { "shirt": [A,B], "shoes": [C,D] }, we want [A, C, B, D] mixed.
@@ -437,7 +678,7 @@ const fashionController = {
 
             console.log(`🔎 Single Search: "${query}" (limit: ${limitNum}, offset: ${offsetNum})`);
 
-            const products = await searchProducts(query, limitNum, offsetNum);
+            const products = await searchProducts(query, limitNum, offsetNum, userGender);
 
             return reply.status(200).send({
                 success: true,

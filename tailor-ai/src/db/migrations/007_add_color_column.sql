@@ -1,0 +1,1 @@
+ALTER TABLE fashion_preferences ADD COLUMN IF NOT EXISTS color JSONB DEFAULT '[]';

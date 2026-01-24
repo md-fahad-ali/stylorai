@@ -13,6 +13,7 @@ import userRoutes from './routes/userRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import fashionRoutes from './routes/fashionRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import cartRoutes from './routes/cartRoutes';
 
 function build(opts: FastifyServerOptions = {}) {
     const app: FastifyInstance = fastify(opts);
@@ -101,6 +102,7 @@ function build(opts: FastifyServerOptions = {}) {
     app.register(dashboardRoutes, { prefix: '/dashboard' });
     app.register(fashionRoutes, { prefix: '/fashion' });
     app.register(uploadRoutes, { prefix: '/upload' });
+    app.register(cartRoutes, { prefix: '/cart' });
 
     app.get('/', async (req, reply) => {
         return reply.view('login', { title: 'Home' });

@@ -51,7 +51,7 @@ export const emailService = {
         </p>
         
         <p style="font-size: 16px; margin-bottom: 20px;">
-            We received a request to reset your password for your TailorAI account. Click the button below to create a new password:
+            We received a request to reset your password for your StyloR.AI account. Click the button below to create a new password:
         </p>
         
         <div style="text-align: center; margin: 30px 0;">
@@ -79,7 +79,7 @@ export const emailService = {
     </div>
     
     <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-        <p>© ${new Date().getFullYear()} TailorAI. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} StyloR.AI. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -88,7 +88,7 @@ export const emailService = {
         const textContent = `
 Hi${userName ? ` ${userName}` : ''},
 
-We received a request to reset your password for your TailorAI account.
+We received a request to reset your password for your StyloR.AI account.
 
 Click the link below to create a new password:
 ${resetUrl}
@@ -97,15 +97,15 @@ This link will expire in 1 hour.
 
 If you didn't request this password reset, please ignore this email.
 
-© ${new Date().getFullYear()} TailorAI
+© ${new Date().getFullYear()} StyloR.AI
         `;
 
         try {
             const transporter = getTransporter();
             await transporter.sendMail({
-                from: `"TailorAI" <${process.env.SMTP_USER || 'noreply@stylorai.com'}>`,
+                from: `"StyloR.AI" <${process.env.SMTP_USER || 'noreply@stylorai.com'}>`,
                 to,
-                subject: 'Reset Your TailorAI Password',
+                subject: 'Reset Your StyloR.AI Password',
                 text: textContent,
                 html: htmlContent,
             });
@@ -193,7 +193,7 @@ If you didn't request this, please ignore this email.
         try {
             const transporter = getTransporter();
             await transporter.sendMail({
-                from: '"TailorAI" <noreply@stylorai.com>',
+                from: '"StyloR.AI" <noreply@stylorai.com>',
                 to,
                 subject: 'Reset Your Password',
                 text: textContent,

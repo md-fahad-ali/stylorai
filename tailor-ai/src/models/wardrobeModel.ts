@@ -4,17 +4,21 @@ export interface WardrobeItem {
     id?: number;
     user_id: number | string;
     image_path: string;
+    uploaded_image_path?: string; // stored path of original uploaded image
     title?: string;
+    category?: string;
+    description?: string;
+    details?: any; // JSONB
     created_at?: Date;
 }
 
 const WardrobeModel = {
     create: async (item: WardrobeItem): Promise<WardrobeItem> => {
-        const { user_id, image_path, title } = item;
+        const { user_id, image_path, uploaded_image_path, title, category, description, details } = item;
         const { rows } = await db.query(
-            `INSERT INTO wardrobe (user_id, image_path, title) 
-             VALUES ($1, $2, $3) RETURNING *`,
-            [user_id, image_path, title || null]
+            `INSERT INTO wardrobe (user_id, image_path, uploaded_image_path, title, category, description, details) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [user_id, image_path, uploaded_image_path || null, title || null, category || null, description || null, details || null]
         );
         return rows[0];
     },

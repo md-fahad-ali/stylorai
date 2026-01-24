@@ -14,6 +14,12 @@ async function fashionRoutes(fastify: FastifyInstance) {
     // GET /fashion/wardrobe - Get all wardrobe items
     fastify.get('/wardrobe', fashionController.getWardrobe);
 
+    // GET /fashion/wardrobe/:id - Get individual wardrobe item
+    fastify.get('/wardrobe/:id', fashionController.getWardrobeItemById);
+
+    // DELETE /fashion/wardrobe/:id - Delete wardrobe item
+    fastify.delete('/wardrobe/:id', fashionController.deleteWardrobeItem);
+
     // GET /fashion/search - Search products with pagination
     fastify.get('/search', fashionController.searchProducts);
 

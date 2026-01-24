@@ -19,6 +19,41 @@ const start = async () => {
         runCleanup();
         setInterval(runCleanup, 60 * 60 * 1000); // 1 Hour
 
+        // Start Product Feed Update Scheduler
+        const { updateProductDatabase } = require('./services/productService');
+
+        const scheduleUkMidnightUpdate = () => {
+            const now = new Date();
+            // Get current wall-clock time in London
+            const ukTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
+
+            // Calculate next midnight relative to London wall-clock
+            const nextMidnight = new Date(ukTime);
+            nextMidnight.setHours(24, 0, 0, 0);
+
+            const delay = nextMidnight.getTime() - ukTime.getTime();
+
+            console.log(`🕒 Server Time: ${now.toLocaleTimeString()}`);
+            console.log(`🇬🇧 UK Time: ${ukTime.toLocaleTimeString()}`);
+            const hours = Math.floor(delay / (1000 * 60 * 60));
+            const minutes = Math.floor((delay % (1000 * 60 * 60)) / (1000 * 60));
+            console.log(`⏳ Next Product Update scheduled in ${hours}h ${minutes}m (at 00:00 UK Time).`);
+
+            setTimeout(() => {
+                console.log('⏰ It is 00:00 UK Time! Starting Daily Product Update...');
+                updateProductDatabase();
+
+                // Then repeat every 24 hours
+                setInterval(() => {
+                    console.log('⏰ Starting Daily Product Update (24h Interval)...');
+                    updateProductDatabase();
+                }, 24 * 60 * 60 * 1000);
+            }, delay);
+        };
+
+        // Run the scheduler
+        scheduleUkMidnightUpdate();
+
     } catch (err) {
         app.log.error(err);
         process.exit(1);

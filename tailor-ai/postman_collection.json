@@ -488,7 +488,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"season\": [\"Spring\"],\n    \"style\": [\"Smart Casual\"],\n    \"preferencesColor\": [\"Neutrals\"],\n    \"bodyType\": \"Athletic\",\n    \"skinTone\": \"Light-Medium\"\n}"
+                            "raw": "{\n    \"season\": [\n        \"Spring\"\n    ],\n    \"style\": [\n        \"Smart Casual\"\n    ],\n    \"preferencesColor\": [\n        \"Neutrals\"\n    ],\n    \"color\": [\n        \"red\",\n        \"indigo\"\n    ],\n    \"bodyType\": \"Athletic\",\n    \"skinTone\": \"Light-Medium\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/fashion/dna",
@@ -500,7 +500,7 @@
                                 "dna"
                             ]
                         },
-                        "description": "Submit fashion preferences and generate outfit image. Returns { imageUrl, title, description, products: [{ title, category }] }. Requires JWT token."
+                        "description": "Submit fashion preferences including 'preferencesColor' and generate outfit image. Returns { imageUrl, title, description, products: [{ title, category }] }. Requires JWT token."
                     },
                     "response": []
                 },
@@ -613,6 +613,72 @@
                             ]
                         },
                         "description": "Get all generated wardrobe items for the authenticated user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Wardrobe Item by ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/wardrobe/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "wardrobe",
+                                "1"
+                            ]
+                        },
+                        "description": "Get individual wardrobe item details by ID, including category, description, and deep analysis details for Awin search."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Wardrobe Item",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/fashion/wardrobe/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "fashion",
+                                "wardrobe",
+                                "1"
+                            ]
+                        },
+                        "description": "Delete a wardrobe item by ID. User can only delete their own items. Requires JWT token."
                     },
                     "response": []
                 },
@@ -864,6 +930,106 @@
                             ]
                         },
                         "description": "Remove an outfit from favorites by ID. Requires JWT token."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Cart",
+            "item": [
+                {
+                    "name": "Add to Cart",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "string"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Sample Product\",\n    \"price\": \"$20.50\",\n    \"buy_now_url\": \"https://example.com/product\",\n    \"image_url\": \"https://example.com/image.jpg\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/cart",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cart"
+                            ]
+                        },
+                        "description": "Add an item to the user's cart. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Cart",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/cart",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cart"
+                            ]
+                        },
+                        "description": "Get all items in the user's cart. Requires JWT token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove from Cart",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/cart/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "cart",
+                                "1"
+                            ]
+                        },
+                        "description": "Remove an item from the cart by ID. Requires JWT token."
                     },
                     "response": []
                 }

@@ -208,40 +208,11 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
         let outfitDetailsSection = '';
 
         if (wardrobeItems && wardrobeItems.length > 0) {
-            // SMART FILTERING: Fashion DNA (Temperature/Season) is PRIMARY
-            // Wardrobe items are SECONDARY - only use if season-appropriate
+            // Case A: Wardrobe Items Present
+            // We strictly prioritize these items.
+            // We expect the controller to have already limited strict count (e.g. 4), but we double check.
 
-            // Helper: Check if item is appropriate for current season
-            const isSeasonAppropriate = (item: any): boolean => {
-                const title = (item.title || '').toLowerCase();
-                const category = (item.category || '').toLowerCase();
-                const combined = title + ' ' + category;
-
-                if (season === 'Summer') {
-                    // Block heavy/warm items in summer
-                    if (/heavy|coat|puffer|winter|wool|thick|warm|beanie/i.test(combined)) return false;
-                    if (category.includes('jacket') && /heavy|winter|puffer/i.test(title)) return false;
-                    return true; // Allow light items
-                }
-
-                if (season === 'Winter') {
-                    // Block light/summer items in winter
-                    if (/tank|t-shirt|tshirt|tee|shorts|sandal|flip.?flop|sleeveless|light|summer/i.test(combined)) return false;
-                    // Also block if it's explicitly a "shirt" but not heavy/warm
-                    if (/\bshirt\b/i.test(combined) && !/fleece|flannel|thermal|warm|heavy/i.test(combined)) return false;
-                    return true; // Allow warm items
-                }
-
-                // Spring/Autumn: More flexible, allow most items
-                return true;
-            };
-
-            // Filter wardrobe items based on current season
-            const filteredWardrobe = wardrobeItems.filter(isSeasonAppropriate);
-
-            console.log(`\ud83d\udd0d Season Filtering: ${wardrobeItems.length} items \u2192 ${filteredWardrobe.length} appropriate for ${season}`);
-
-            const limitedWardrobe = filteredWardrobe.slice(0, 4);
+            const limitedWardrobe = wardrobeItems.slice(0, 4);
             const slotsUsed = limitedWardrobe.length;
             const slotsRemaining = 4 - slotsUsed;
 
@@ -251,15 +222,12 @@ export async function generateOutfitImage(fashionData: FashionDNAData, temperatu
             const coveredCategories = new Set<string>();
             limitedWardrobe.forEach(item => {
                 const cat = (item.category || '').toLowerCase();
-                const type = (item.details?.type || '').toLowerCase();
-                const combined = cat + ' ' + type + ' ' + (item.title || '');
-
-                if (/shoe|sneaker|boot|sandal|loafer/i.test(combined)) {
-                    coveredCategories.add('shoes');
-                } else if (/shirt|t-shirt|top|jacket|coat|sweater|hoodie/i.test(combined)) {
+                if (/shirt|t-shirt|top|jacket|coat|sweater|hoodie/i.test(cat)) {
                     coveredCategories.add('top');
-                } else if (/pant|jeans|trousers|short|skirt/i.test(combined)) {
+                } else if (/pant|jeans|trousers|short|skirt/i.test(cat)) {
                     coveredCategories.add('bottom');
+                } else if (/shoe|sneaker|boot|sandal|loafer/i.test(cat)) {
+                    coveredCategories.add('shoes');
                 } else {
                     coveredCategories.add('accessories');
                 }

@@ -57,7 +57,7 @@ const authController = {
 
         // Generate Tokens for Mobile/API
         // @ts-ignore
-        const accessToken = (req.server as any).jwt.sign({ id: user.id || 0, email: user.email, name: user.full_name }, { expiresIn: '15m' });
+        const accessToken = (req.server as any).jwt.sign({ id: user.id || 0, email: user.email, name: user.full_name }, { expiresIn: '1d' });
 
         const refreshToken = require('crypto').randomBytes(40).toString('hex');
         const expiresAt = new Date();
@@ -159,7 +159,7 @@ const authController = {
 
             // Generate Tokens
             // @ts-ignore
-            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '15m' });
+            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '1d' });
 
             const refreshToken = require('crypto').randomBytes(40).toString('hex');
             const expiresAt = new Date();
@@ -169,9 +169,9 @@ const authController = {
 
             return reply.send({ token: accessToken, refreshToken, user });
 
-        } catch (error) {
+        } catch (error: any) {
             req.log.error(error);
-            return reply.status(401).send({ error: 'Token verification failed' });
+            return reply.status(401).send({ error: 'Token verification failed', details: error.message });
         }
     },
 
@@ -211,7 +211,7 @@ const authController = {
 
             // Generate Tokens
             // @ts-ignore
-            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '15m' });
+            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '1d' });
 
             const refreshToken = require('crypto').randomBytes(40).toString('hex');
             const expiresAt = new Date();
@@ -229,7 +229,12 @@ const authController = {
 
     // Manual Registration
     register: async (req: FastifyRequest, reply: FastifyReply) => {
-        const { email, password, full_name } = req.body as any;
+        let { email, password, full_name, fullName } = req.body as any;
+
+        // Map camelCase fullName to snake_case full_name if needed
+        if (!full_name && fullName) {
+            full_name = fullName;
+        }
 
         if (!email || !password) {
             return reply.status(400).send({ error: 'Email and password are required' });
@@ -297,7 +302,7 @@ const authController = {
 
             // Generate Tokens
             // @ts-ignore
-            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '15m' });
+            const accessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '1d' });
 
             const refreshToken = require('crypto').randomBytes(40).toString('hex');
             const expiresAt = new Date();
@@ -338,7 +343,7 @@ const authController = {
 
             // Generate NEW Tokens
             // @ts-ignore
-            const newAccessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '15m' });
+            const newAccessToken = (req.server as any).jwt.sign({ id: user.id, email: user.email, name: user.full_name }, { expiresIn: '1d' });
 
             const newRefreshToken = require('crypto').randomBytes(40).toString('hex');
             const expiresAt = new Date();
@@ -376,6 +381,7 @@ const authController = {
                 season?: string[];
                 style?: string[];
                 preferencesColor?: string[];
+                color?: string[];
                 bodyType?: string;
                 skinTone?: string;
             };
@@ -405,6 +411,7 @@ const authController = {
                     season: fashionPreferences.season,
                     style: fashionPreferences.style,
                     preferences_color: fashionPreferences.preferencesColor,
+                    color: fashionPreferences.color,
                     body_type: fashionPreferences.bodyType,
                     skin_tone: fashionPreferences.skinTone,
                 });
@@ -434,10 +441,11 @@ const authController = {
             return reply.status(401).send({ error: 'Unauthorized' });
         }
 
-        const { season, style, preferencesColor, bodyType, skinTone } = req.body as {
+        const { season, style, preferencesColor, color, bodyType, skinTone } = req.body as {
             season?: string[];
             style?: string[];
             preferencesColor?: string[];
+            color?: string[];
             bodyType?: string;
             skinTone?: string;
         };
@@ -448,6 +456,7 @@ const authController = {
                 season,
                 style,
                 preferences_color: preferencesColor,
+                color,
                 body_type: bodyType,
                 skin_tone: skinTone,
             });

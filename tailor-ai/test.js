@@ -1,85 +1,96 @@
-import OpenAI from "openai";
-import fs from "fs";
-import path from "path";
-import dotenv from "dotenv";
+const fs = require('fs');
+const axios = require('axios');
+const zlib = require('zlib');
+const csv = require('csv-parser');
 
-dotenv.config();
+// Coast-এর মার্চেন্ট আইডি (এটি ফিক্সড থাকবে)
+const COAST_ID = '57411';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// কমান্ড লাইন থেকে সার্চের শব্দ নেওয়া হচ্ছে
+// ব্যবহার: node search.js "black party dress"
+const userQuery = process.argv[2];
 
-// Paths
-const INPUT_IMAGE = path.resolve("./woman.webp");
-const OUTPUT_DIR = path.resolve("output");
-const OUTPUT_IMAGE = path.join(OUTPUT_DIR, "dress.png");
+// যদি ইউজার কিছু না লেখে, তবে ডিফল্ট হিসেবে 'party dress' খুঁজবে
+const SEARCH_KEYWORD = userQuery ? userQuery : 'party dress';
 
-// Prompt used for dress isolation
-const PROMPT = `
-Isolate and regenerate only the dress from the provided image.
+console.log(`\n🔍 খুঁজছি: "${SEARCH_KEYWORD}"...`);
 
-Remove the woman completely.
-Remove face, body, arms, legs, hair, hands.
-Remove original background.
+async function searchInCoastData() {
+    const results = [];
+    let foundUrl = null;
 
-Generate a flat lay product image of the dress only, placed naturally as if prepared for an e-commerce catalog.
+    // ১. datafeeds.csv ফাইল থেকে Coast-এর URL খোঁজা
+    fs.createReadStream('datafeeds.csv')
+        .pipe(csv())
+        .on('data', (data) => {
+            if (data['Advertiser ID'] === COAST_ID) {
+                foundUrl = data.URL;
+            }
+        })
+        .on('end', async () => {
+            if (!foundUrl) {
+                console.log("❌ ত্রুটি: Coast (57411) আপনার ডাটাফিড ফাইলে পাওয়া যায়নি।");
+                return;
+            }
 
-PRESERVE:
-- Original dress design
-- Fabric type
-- Embroidery placement
-- Print pattern and colors
-- Dress length and silhouette
+            console.log(`✅ Coast-এর লিংক পাওয়া গেছে। ডাটা নামানো হচ্ছে...`);
 
-STYLE:
-- Top-down flat lay photography
-- Pure white background
-- Soft realistic shadow
-- Clean minimalist e-commerce style
-- High-resolution product image
+            try {
+                // ২. লাইভ ডাটা ডাউনলোড করা
+                const response = await axios({
+                    method: 'get',
+                    url: foundUrl,
+                    responseType: 'stream'
+                });
 
-RULES:
-- No human
-- No mannequin
-- No hanger
-- No text
-- No logo
-- No watermark
-`;
+                let matchCount = 0;
+                // সার্চের শব্দগুলোকে ছোট হাতের অক্ষরে ভেঙ্গে আলাদা করা হচ্ছে
+                const searchTerms = SEARCH_KEYWORD.toLowerCase().split(' ').filter(t => t.trim() !== '');
 
-async function generateDress() {
-    console.log("👗 Generating dress flat-lay image...");
+                // ৩. ডাটা প্রসেসিং এবং ফিল্টারিং
+                const stream = response.data.pipe(zlib.createGunzip()).pipe(csv());
 
-    if (!fs.existsSync(INPUT_IMAGE)) {
-        throw new Error("❌ input/woman.jpg not found");
-    }
+                stream.on('data', (product) => {
+                    const name = product.product_name ? product.product_name.toLowerCase() : '';
+                    const desc = product.description ? product.description.toLowerCase() : '';
 
-    if (!fs.existsSync(OUTPUT_DIR)) {
-        fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    }
+                    // লজিক: সার্চের প্রতিটি শব্দ নাম বা বর্ণনার মধ্যে থাকতে হবে
+                    const isMatch = searchTerms.every(term => name.includes(term) || desc.includes(term));
 
-    const imageBuffer = fs.readFileSync(INPUT_IMAGE);
+                    if (isMatch) {
+                        matchCount++;
 
-    const { toFile } = await import("openai/uploads");
+                        // টার্মিনাল পরিষ্কার রাখতে প্রথম ৫টি রেজাল্ট দেখানো হবে
+                        if (matchCount <= 5) {
+                            console.log('-----------------------------------');
+                            console.log(`👗 পণ্য: ${product.product_name}`);
+                            console.log(`💰 দাম: £${product.search_price}`);
+                            console.log(`🔗 লিংক: ${product.aw_deep_link}`);
+                        }
+                    }
+                });
 
-    const response = await openai.images.edit({
-        model: "gpt-image-1",
-        image: await toFile(imageBuffer, "woman.webp", { type: "image/webp" }),
-        prompt: PROMPT,
-        size: "1024x1024",
-    });
+                stream.on('end', () => {
+                    console.log('-----------------------------------');
+                    if (matchCount === 0) {
+                        console.log('❌ দুঃখিত, এই নামে কোনো ড্রেস পাওয়া যায়নি।');
+                    } else {
+                        console.log(`\n🎉 সার্চ সম্পন্ন! মোট ${matchCount} টি পণ্য পাওয়া গেছে।`);
+                        if (matchCount > 5) {
+                            console.log(`(আরও ${matchCount - 5} টি পণ্য আছে যা এখানে দেখানো হয়নি)`);
+                        }
+                    }
+                });
 
-    const base64Image = response.data[0]?.b64_json;
+                stream.on('error', (err) => {
+                    console.error('CSV পড়তে সমস্যা হয়েছে:', err.message);
+                });
 
-    if (!base64Image) {
-        throw new Error("❌ No image returned");
-    }
-
-    const finalImage = Buffer.from(base64Image, "base64");
-    fs.writeFileSync(OUTPUT_IMAGE, finalImage);
-
-    console.log("✅ Dress image generated!");
-    console.log("📁 Saved to:", OUTPUT_IMAGE);
+            } catch (err) {
+                console.error("URL থেকে ডাটা আনতে সমস্যা হয়েছে:", err.message);
+            }
+        });
 }
 
-generateDress().catch(console.error);
+// ফাংশন কল করা
+searchInCoastData();

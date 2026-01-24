@@ -37,10 +37,10 @@ const otpService = {
             const expiresAt = new Date();
             expiresAt.setMinutes(expiresAt.getMinutes() + 3);
 
-            // Insert new OTP record
+            // Insert new OTP record (store hashed OTP in token column)
             await UserModel.query(
-                'INSERT INTO password_reset_tokens (user_id, token, otp, expires_at) VALUES ($1, $2, $3, $4)',
-                [user.id, hashedOTP, otp, expiresAt] // Store plain OTP for now, we'll hash it properly
+                'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+                [user.id, hashedOTP, expiresAt]
             );
 
             console.log(`✅ OTP stored for user: ${email}, expires at: ${expiresAt.toISOString()}`);
@@ -63,7 +63,7 @@ const otpService = {
 
             // Get non-expired OTP records for this user
             const result = await UserModel.query(
-                'SELECT id, otp FROM password_reset_tokens WHERE user_id = $1 AND expires_at > NOW()',
+                'SELECT id, token FROM password_reset_tokens WHERE user_id = $1 AND expires_at > NOW()',
                 [user.id]
             );
 
@@ -73,8 +73,8 @@ const otpService = {
 
             const record = result.rows[0];
 
-            // Simple string comparison for OTP
-            return record.otp === otp;
+            // Verify OTP against hashed token
+            return await bcrypt.compare(otp, record.token);
 
         } catch (error) {
             console.error('❌ Error verifying OTP:', error);
@@ -93,15 +93,22 @@ const otpService = {
             }
 
             const result = await UserModel.query(
-                'SELECT user_id FROM password_reset_tokens WHERE user_id = $1 AND otp = $2 AND expires_at > NOW()',
-                [user.id, otp]
+                'SELECT user_id, token FROM password_reset_tokens WHERE user_id = $1 AND expires_at > NOW()',
+                [user.id]
             );
 
             if (result.rows.length === 0) {
                 return null;
             }
 
-            return result.rows[0].user_id;
+            const record = result.rows[0];
+            const isValid = await bcrypt.compare(otp, record.token);
+
+            if (!isValid) {
+                return null;
+            }
+
+            return record.user_id;
         } catch (error) {
             console.error('❌ Error getting user ID from OTP:', error);
             return null;
